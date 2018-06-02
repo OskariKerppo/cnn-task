@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import read_yale
-from sklearn import svm
 from sklearn.model_selection import cross_val_score
 from sklearn.metrics import accuracy_score
 from sklearn.utils import shuffle
@@ -15,6 +14,13 @@ import os
 import bz2
 from os import listdir
 from os.path import isfile, join
+
+import keras
+from keras.models import Sequential, Input, Model
+from keras.layers import Dense, Dropout, Flatten
+from keras.layers import Conv1D, MaxPooling1D
+from keras.layers.normalization import BatchNormalization
+
 
 code_folder = os.getcwd()
 model_folder = code_folder + r'\Trainded_Models'
@@ -62,15 +68,42 @@ def main():
 	final_validation_labels = convert_to_hot(final_validation_labels)
 	final_pic_names = final_validation.index.get_level_values('pic_name').values
 	final_validation = final_validation.values
+	final_validation = np.reshape(final_validation,(-1,32256,1))
 
 	total_training = images
 	total_labels = total_training.index.get_level_values('person').values
 	total_labels = convert_to_hot(total_labels)
 	total_training = total_training.values
-
-
+	print(total_training.shape)
+	total_training = np.reshape(total_training,(-1,32256,1))
+	print(total_training.shape)
+	print(total_training[0])
+	print(total_labels.shape)
 	print("Loaded dataset and separated final validation data")
 	print("Time passed: " + str(time.time()-start))
+
+	#Training convolutional NN with keras
+	batch_size = 64
+	epochs = 20
+	num_classes = 39
+
+	cudnn = Sequential()
+	cudnn.add(Conv1D(16, kernel_size=5,activation='relu',input_shape=(32256,1),padding='same'))
+	cudnn.add(MaxPooling1D(pool_size=2,padding='same'))
+	cudnn.add(Conv1D(36, kernel_size=5,activation='relu',input_shape=(32256,1),padding='same'))
+	cudnn.add(MaxPooling1D(pool_size=2,padding='same'))
+	cudnn.add(Flatten())
+	cudnn.add(Dense(512, activation='relu'))  
+	cudnn.add(Dropout(rate=0.5))	               
+	cudnn.add(Dense(num_classes, activation='softmax'))
+
+
+	#Compile model
+	cudnn.compile(loss=keras.losses.categorical_crossentropy, optimizer=keras.optimizers.Adam(),metrics=['accuracy'])
+	cudnn.summary()
+
+	cudnn_train = cudnn.fit(total_training, total_labels, batch_size=batch_size,epochs=epochs,verbose=1,validation_data=(final_validation, final_validation_labels))
+
 	#We use 10-fold cross-validation. The accuracy of the 10 SVM's is then calculated on majority vote on final 
 	#validation data
 	"""
@@ -149,7 +182,7 @@ def main():
 	"""
 
 
-	
+
 if __name__ == "__main__":
 	main()
 
