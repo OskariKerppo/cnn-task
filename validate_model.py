@@ -4,7 +4,7 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
 import numpy as np
 import pandas as pd
-import pickle
+import cPickle as pickle
 from collections import Counter
 import time
 import os
@@ -121,7 +121,7 @@ for i in range(len(final_predictions_vote)):
 
 print("Correctly classified: " + str(correct))
 print("Total validation samples: " + str(len(final_validation_labels)))
-print("Percentage correct: " + str(correct/(correct + incorrect)))
+print("Percentage correct: " + str(float(correct)/(correct + incorrect)))
 print("Incorrectly classified pictures: ")
 print(str(incorrect_pics))
 
@@ -139,7 +139,7 @@ for i in range(len(final_predictions_confidence)):
 
 print("Correctly classified: " + str(correct))
 print("Total validation samples: " + str(len(final_validation_labels)))
-print("Percentage correct: " + str(correct/(correct + incorrect)))
+print("Percentage correct: " + str(float(correct)/(correct + incorrect)))
 print("Incorrectly classified pictures: ")
 print(str(incorrect_pics))
 
@@ -157,7 +157,7 @@ for i in range(len(total_predictions)):
 
 print("Correctly classified: " + str(correct))
 print("Total validation samples: " + str(len(final_validation_labels)))
-print("Percentage correct: " + str(correct/(correct + incorrect)))
+print("Percentage correct: " + str(float(correct)/(correct + incorrect)))
 print("Incorrectly classified pictures: ")
 print(str(incorrect_pics))
 
@@ -187,7 +187,7 @@ for i in range(len(combined_predictions_voted)):
 
 print("Correctly classified: " + str(correct))
 print("Total validation samples: " + str(len(final_validation_labels)))
-print("Percentage correct: " + str(correct/(correct + incorrect)))
+print("Percentage correct: " + str(float(correct)/(correct + incorrect)))
 print("Incorrectly classified pictures: ")
 print(str(incorrect_pics))
 

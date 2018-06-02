@@ -53,35 +53,32 @@ def load_images_croppedyale():
     3) All keys appearing in all second-level dictionaries, as an OrderedSet.
     """
     orig_folder = os.getcwd()
-    try:
-        os.chdir('CroppedYale')
-        subdirs = sorted(os.listdir())
-        pics = OrderedDict()
-        u_fname_suffixes, i_fname_suffixes = OrderedSet(), OrderedSet()
-        image_resolution = None
-        first_iter = True
-        for subdir in subdirs: # Iterate over all folders (persons)
-            pics[subdir] = OrderedDict()
-            os.chdir(subdir)
-            file_names = [x for x in os.listdir() if x.endswith('.pgm') and 'Ambient' not in x]
-            current_suffixes = sorted(x[len(subdir) + 1 : -4] for x in file_names)
-            for fname_suffix in current_suffixes: # Iterate over files (images)
-                fname = subdir + '_' + fname_suffix + '.pgm'
-                pic = imageio.imread(fname)
-                pics[subdir][fname_suffix] = pic
-                if image_resolution is None:
-                    image_resolution = [len(pic[0]), len(pic)]
-                elif image_resolution != [len(pic[0]), len(pic)]:
-                    print('Warning: input images have different sizes.')
-            u_fname_suffixes = u_fname_suffixes.union(current_suffixes)
-            if first_iter:
-                i_fname_suffixes, first_iter = u_fname_suffixes, False
-            else:
-                i_fname_suffixes = i_fname_suffixes.intersection(current_suffixes)
-            os.chdir('..')
-        return pics, u_fname_suffixes, i_fname_suffixes
-    finally:
-        os.chdir(orig_folder)
+    yale_folder = orig_folder + '\\CroppedYale'
+    subdirs = sorted(os.listdir(yale_folder))
+    #print(subdirs)
+    pics = OrderedDict()
+    u_fname_suffixes, i_fname_suffixes = OrderedSet(), OrderedSet()
+    image_resolution = None
+    first_iter = True
+    for subdir in subdirs: # Iterate over all folders (persons)
+        yale_sub_folder = yale_folder + '\\' + subdir
+        pics[subdir] = OrderedDict()
+        file_names = [x for x in os.listdir(yale_sub_folder) if x.endswith('.pgm') and 'Ambient' not in x]
+        current_suffixes = sorted(x[len(subdir) + 1 : -4] for x in file_names)
+        for fname_suffix in current_suffixes: # Iterate over files (images)
+            fname = 'CroppedYale\\' + subdir + '\\' + subdir + '_' + fname_suffix + '.pgm'
+            pic = imageio.imread(fname)
+            pics[subdir][fname_suffix] = pic
+            if image_resolution is None:
+                image_resolution = [len(pic[0]), len(pic)]
+            elif image_resolution != [len(pic[0]), len(pic)]:
+                print('Warning: input images have different sizes.')
+        u_fname_suffixes = u_fname_suffixes.union(current_suffixes)
+        if first_iter:
+            i_fname_suffixes, first_iter = u_fname_suffixes, False
+        else:
+            i_fname_suffixes = i_fname_suffixes.intersection(current_suffixes)
+    return pics, u_fname_suffixes, i_fname_suffixes
 
 def images_to_array(pics, included_suffixes):
     """ Convert the given pictures to a numpy array.
@@ -95,6 +92,7 @@ def images_to_array(pics, included_suffixes):
     'names') and suffixes (lighting conditions) is returned, as well as the
     resolution of the images.
     """
+    #print(included_suffixes)
     x_res, y_res = -1, -1
     feature_matrix = None
     person_names = []
@@ -114,8 +112,8 @@ def images_to_array(pics, included_suffixes):
             full_pic_names += [(person_name, pic_name)]
     # Get the pictures into the feature matrix. Pixel intensities are
     # scaled from 0...255 to the range [0, 1].
-    pic_arrays = [np.array((pics[s[0]][s[1]] / 255).ravel()) for s in full_pic_names]
+    pic_arrays = [np.array((pics[s[0]][s[1]] / 255.0).ravel()) for s in full_pic_names]
     feature_matrix = np.vstack(pic_arrays)
     return feature_matrix, np.array(person_names), np.array(full_pic_names), [x_res, y_res]
 
-x = load_images_croppedyale()
+
