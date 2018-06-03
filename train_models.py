@@ -20,6 +20,9 @@ from keras.models import Sequential, Input, Model
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv1D, MaxPooling1D
 from keras.layers.normalization import BatchNormalization
+from keras.models import load_model
+
+import matplotlib.pyplot as plt
 
 
 code_folder = os.getcwd()
@@ -61,28 +64,35 @@ def main():
 	start = time.time()
 	images, resolution = read_yale.get_croppedyale_as_df()
 	images = shuffle(images)
-	#We leave 20 % of the data for final validation. This is not used in training
-	final_validation = images.sample(frac=0.2)
-	images = images.loc[~images.index.isin(final_validation.index)]
-	final_validation_labels = final_validation.index.get_level_values('person').values
-	final_validation_labels = convert_to_hot(final_validation_labels)
-	final_pic_names = final_validation.index.get_level_values('pic_name').values
-	final_validation = final_validation.values
-	final_validation = np.reshape(final_validation,(-1,32256,1))
+	#We leave 20 % of the data for final testing. This is not used in training
+	test_X = images.sample(frac=0.2)
+	images = images.loc[~images.index.isin(test_X.index)]
+	test_labels = test_X.index.get_level_values('person').values
+	test_labels = convert_to_hot(test_labels)
+	test_pic_names = test_X.index.get_level_values('pic_name').values
+	test_X = test_X.values
+	test_X = np.reshape(test_X,(-1,32256,1))
 
-	total_training = images
-	total_labels = total_training.index.get_level_values('person').values
-	total_labels = convert_to_hot(total_labels)
-	total_training = total_training.values
-	print(total_training.shape)
-	total_training = np.reshape(total_training,(-1,32256,1))
-	print(total_training.shape)
-	print(total_training[0])
-	print(total_labels.shape)
+	train_X = images.sample(frac=0.7)
+	images = images.loc[~images.index.isin(train_X.index)]
+	train_label = train_X.index.get_level_values('person').values
+	train_label = convert_to_hot(train_label)
+	train_X = train_X.values
+	train_X = np.reshape(train_X,(-1,32256,1))
+
+	valid_X = images
+	valid_label = valid_X.index.get_level_values('person').values
+	valid_label = convert_to_hot(valid_label)
+	valid_X = valid_X.values
+	valid_X = np.reshape(valid_X,(-1,32256,1))
+
+
 	print("Loaded dataset and separated final validation data")
 	print("Time passed: " + str(time.time()-start))
 
 	#Training convolutional NN with keras
+	print("Defining model")
+	print("Time passed: " + str(time.time()-start))
 	batch_size = 64
 	epochs = 20
 	num_classes = 39
@@ -96,90 +106,47 @@ def main():
 	cudnn.add(Dense(512, activation='relu'))  
 	cudnn.add(Dropout(rate=0.5))	               
 	cudnn.add(Dense(num_classes, activation='softmax'))
-
-
+	print("Time passed: " + str(time.time()-start))
+	print("Compiling model")
 	#Compile model
 	cudnn.compile(loss=keras.losses.categorical_crossentropy, optimizer=keras.optimizers.Adam(),metrics=['accuracy'])
-	cudnn.summary()
-
-	cudnn_train = cudnn.fit(total_training, total_labels, batch_size=batch_size,epochs=epochs,verbose=1,validation_data=(final_validation, final_validation_labels))
-
-	#We use 10-fold cross-validation. The accuracy of the 10 SVM's is then calculated on majority vote on final 
-	#validation data
-	"""
-	k_fold_data = {}
-	k_fold_labels = {}
-	k_f = k_fold
-	print("Separating remaining data into " + str(k_fold) + " subsets...")
-	#SPLIT TRAINING DATA TO 10 SUBSETS RANDOMLY
-	for i in range(k_fold):
-		print("Fraction to append: " + str(1.0/k_f))
-		k_fold_data[i] = images.sample(frac=1.0/k_f)
-		images = images.loc[~images.index.isin(k_fold_data[i].index)]
-		k_fold_labels[i] = k_fold_data[i].index.get_level_values('person').values
-		k_fold_data[i] = k_fold_data[i].values
-		k_f -= 1
-
-
-	print("Data ready.")
 	print("Time passed: " + str(time.time()-start))
-	#TRAIN 10 SVMs
-	print("Training SVMs...")
-	accuracies = []
-	for i in range(k_fold):
-		print("Training model: " + str(i+1)+ "...")
-		formatted = False
-		for key in k_fold_data:
-			if key == i:
-				validation_data = k_fold_data[key]
-				validation_labels = k_fold_labels[key]
-			elif not formatted:
-				training_data = k_fold_data[key]
-				training_labels = k_fold_labels[key]
-				formatted = True
-			else:
-				training_data = np.vstack([training_data, k_fold_data[key]])
-				training_labels = np.append(training_labels, k_fold_labels[key])
-		print("Validation data and label shape: ")
-		print(validation_data.shape)
-		print(validation_labels.shape)
-		print("Training data and label shape: ")
-		print(training_data.shape)
-		print(training_labels.shape)
-		clf = svm.LinearSVC()
-		#print(training_data)
-		#print(training_labels)
-		clf.fit(training_data,training_labels)
-		acc_pred = clf.predict(validation_data)
-		acc = accuracy_score(validation_labels,acc_pred)
-		print("Accuracy: " + str(acc))
-		#print(validation_labels)
-		#print(validation_labels.shape)
-		#print(acc_pred)
-		#print(acc_pred.shape)
-		accuracies.append(acc)
-		with open(model_folder + r'\svm_'+str(i)+'.pickle','wb') as file:
-			pickle.dump(clf,file)
-		print("Model "+ str(i+1)+" trained!")
-		print("Time passed: " + str(time.time()-start))
+	cudnn.summary()
+	#Train model for 20 epochs
+	print("Training model")
+	cudnn_train = cudnn.fit(train_X, train_label, batch_size=batch_size,epochs=epochs,verbose=1,validation_data=(valid_X, valid_label))
+	print("Time passed: " + str(time.time()-start))
+	#Save model for later use
+	cudnn.save(model_folder + r'\cudnn.h5')
 
-	with open(model_folder+r'\accuracies.pickle','wb') as f:
-		pickle.dump(accuracies,f)
-	print("Cross validation ready. Training final model...")
-	clf = svm.LinearSVC()
-	clf.fit(total_training,total_labels)
-	with open(model_folder + r'\svm_total.pickle','wb') as file:
-		pickle.dump(clf,file)
 
-	print("All models trained!")
+	#Dump test sets
+
+
+	accuracy = cudnn_train.history['acc']
+	val_accuracy = cudnn_train.history['val_acc']
+	loss = cudnn_train.history['loss']
+	val_loss = cudnn_train.history['val_loss']
+
+	
+	with bz2.BZ2File(model_folder + r'\accuracy.pbz2','w') as file:
+		pickle.dump(accuracy,file)
+	with bz2.BZ2File(model_folder + r'\val_accuracy.pbz2','w') as file:
+		pickle.dump(val_accuracy,file)		
+	with bz2.BZ2File(model_folder + r'\loss.pbz2','w') as file:
+		pickle.dump(loss,file)
+	with bz2.BZ2File(model_folder + r'\val_loss.pbz2','w') as file:
+		pickle.dump(val_loss,file)
 
 	with bz2.BZ2File(model_folder + r'\test_set.pbz2','w') as file:
-		pickle.dump(final_validation,file)
+		pickle.dump(test_X,file)
 	with bz2.BZ2File(model_folder + r'\test_labels.pbz2','wb') as file:
-		pickle.dump(final_validation_labels,file)
+		pickle.dump(test_labels,file)
 	with bz2.BZ2File(model_folder + r'\test_pic_names.pbz2','wb') as file:
-		pickle.dump(final_pic_names,file)
-	"""
+		pickle.dump(test_pic_names,file)
+
+
+
 
 
 
