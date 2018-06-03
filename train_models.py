@@ -94,7 +94,7 @@ def main():
 	print("Defining model")
 	print("Time passed: " + str(time.time()-start))
 	batch_size = 64
-	epochs = 20
+	epochs = 40
 	num_classes = 39
 
 	cudnn = Sequential()
@@ -114,7 +114,9 @@ def main():
 	cudnn.summary()
 	#Train model for 20 epochs
 	print("Training model")
+	start_training = time.time()
 	cudnn_train = cudnn.fit(train_X, train_label, batch_size=batch_size,epochs=epochs,verbose=1,validation_data=(valid_X, valid_label))
+	print("Total training time: " + str(time.time()-start_training))
 	print("Time passed: " + str(time.time()-start))
 	#Save model for later use
 	cudnn.save(model_folder + r'\cudnn.h5')
