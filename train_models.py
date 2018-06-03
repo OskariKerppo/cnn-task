@@ -21,6 +21,7 @@ from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv1D, MaxPooling1D
 from keras.layers.normalization import BatchNormalization
 from keras.models import load_model
+from keras.callbacks import EarlyStopping
 
 import matplotlib.pyplot as plt
 
@@ -94,7 +95,7 @@ def main():
 	print("Defining model")
 	print("Time passed: " + str(time.time()-start))
 	batch_size = 64
-	epochs = 40
+	epochs = 80
 	num_classes = 39
 
 	cudnn = Sequential()
@@ -112,10 +113,13 @@ def main():
 	cudnn.compile(loss=keras.losses.categorical_crossentropy, optimizer=keras.optimizers.Adam(),metrics=['accuracy'])
 	print("Time passed: " + str(time.time()-start))
 	cudnn.summary()
+	#Early Stopping
+	earlystop = EarlyStopping(monitor='val_acc', min_delta=0.0001, patience=5, verbose=1, mode='auto')
+	callbacks_list = [earlystop]
 	#Train model for 20 epochs
 	print("Training model")
 	start_training = time.time()
-	cudnn_train = cudnn.fit(train_X, train_label, batch_size=batch_size,epochs=epochs,verbose=1,validation_data=(valid_X, valid_label))
+	cudnn_train = cudnn.fit(train_X, train_label, batch_size=batch_size,epochs=epochs, callbacks=callbacks_list, verbose=1,validation_data=(valid_X, valid_label))
 	print("Total training time: " + str(time.time()-start_training))
 	print("Time passed: " + str(time.time()-start))
 	#Save model for later use
