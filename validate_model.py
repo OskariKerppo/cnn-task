@@ -12,6 +12,7 @@ import bz2
 from os import listdir
 from os.path import isfile, join
 import itertools
+import imageio
 import keras
 from keras.models import Sequential, Input, Model
 from keras.layers import Dense, Dropout, Flatten
@@ -20,6 +21,8 @@ from keras.layers.normalization import BatchNormalization
 from keras.models import load_model
 
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import matplotlib.cm as cm
 
 code_folder = os.getcwd()
 model_folder = code_folder + r'\Trainded_Models'
@@ -169,3 +172,44 @@ print("Total validation samples: " + str(len(test_label_names)))
 print("Percentage correct: " + str(float(correct)/(correct + incorrect)))
 print("Incorrectly classified pictures: ")
 print(str(incorrect_pics))
+
+
+#Plot incorrectly classified images
+
+
+
+pic_folder = code_folder + r'\CroppedYale'
+f, axarr = plt.subplots(2,len(incorrect_pics))
+for i in range(len(incorrect_pics)):
+    true_person = incorrect_pics[i][0] + 1
+    if len(str(true_person)) == 1:
+        true_person = 'yaleB0' + str(true_person)
+    else:
+        true_person = 'yaleB' + str(true_person)
+
+    pic_path = pic_folder + '\\' + true_person + '\\' + true_person + '_' + incorrect_pics[i][1] + '.pgm'
+    pic = mpimg.imread(pic_path)
+
+    #pic_gray = np.array(pic / 255.0)
+
+    axarr[0,i].imshow(pic, cmap = cm.Greys_r)
+    axarr[0,i].set_title("Incorrectly classified : {}".format(true_person))
+    axarr[0,i].axis('off')
+
+    predicted_person = incorrect_pics[i][2] + 1
+    if len(str(predicted_person)) == 1:
+        predicted_person = 'yaleB0' + str(predicted_person)
+    else:
+        predicted_person = 'yaleB' + str(predicted_person)
+
+    pic_path = pic_folder + '\\' + predicted_person + '\\' + predicted_person + '_' + incorrect_pics[i][1] + '.pgm'
+    pic = mpimg.imread(pic_path)
+
+    pic_gray = np.array(pic / 255.0)
+
+    axarr[1,i].imshow(pic, cmap = cm.Greys_r)
+    axarr[1,i].set_title("Predicted person : {}".format(predicted_person))
+    axarr[1,i].axis('off')
+
+
+plt.show()
