@@ -75,8 +75,12 @@ plt.title('Training and validation loss')
 plt.legend()
 plt.show()
 
+
+print(np.array([test_X[0]]).shape)
+
+
 #Predict some images
-p1 = cudnn.predict(test_X[0])
-p2 = cudnn.predict(test_X[1])
-p3 = cudnn.predict(test_X[2])
+p1 = cudnn.predict(np.array([test_X[0]]))
+p2 = cudnn.predict(np.array([test_X[0]]))
+p3 = cudnn.predict(np.array([test_X[0]]))
 print(p1,p2,p3)
